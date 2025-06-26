@@ -1,12 +1,387 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的第一个网站</title>
+    <title>Markdown 内容展示器</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --border-color: #ddd;
+            --card-bg: #fff;
+            --header-bg: #f1f3f5;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --code-bg: #f5f7f9;
+        }
+        
+        .dark-mode {
+            --primary-color: #5dade2;
+            --secondary-color: #58d68d;
+            --bg-color: #1a1a2e;
+            --text-color: #e0e0e0;
+            --border-color: #444;
+            --card-bg: #16213e;
+            --header-bg: #0f3460;
+            --shadow: 0 4px 6px rgba(0,0,0,0.3);
+            --code-bg: #222;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn.secondary {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn.secondary:hover {
+            background-color: #27ae60;
+        }
+        
+        .editor-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .editor-section, .preview-section {
+            flex: 1;
+            min-width: 300px;
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background-color: var(--header-bg);
+            padding: 15px 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .editor {
+            width: 100%;
+            height: 500px;
+            padding: 20px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 16px;
+            border: none;
+            resize: vertical;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+        
+        .preview {
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+        }
+        
+        .preview h1, .preview h2, .preview h3 {
+            color: var(--primary-color);
+            margin: 20px 0 10px;
+        }
+        
+        .preview p {
+            margin-bottom: 15px;
+        }
+        
+        .preview code {
+            background-color: var(--code-bg);
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .preview pre {
+            background-color: var(--code-bg);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .preview blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 15px;
+            margin: 15px 0;
+            color: #777;
+        }
+        
+        .preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .preview th, .preview td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .preview th {
+            background-color: var(--header-bg);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+            border-top: 1px solid var(--border-color);
+            color: #777;
+        }
+        
+        @media (max-width: 768px) {
+            .editor-container {
+                flex-direction: column;
+            }
+            
+            .editor, .preview {
+                height: 400px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h3>欢迎来到我的网站</h3>
-    <a href="https://space.bilibili.com/406270433?spm_id_from=333.1007.0.0">我的B站主页</a>
+    <div class="container">
+        <header>
+            <h1>Markdown 内容展示器</h1>
+            <p class="subtitle">在左侧编辑Markdown内容，右侧实时预览渲染效果。支持代码高亮、表格、列表等多种格式。</p>
+        </header>
+        
+        <div class="controls">
+            <button id="theme-toggle" class="btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
+                </svg>
+                切换主题
+            </button>
+            <button id="sample-btn" class="btn secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                </svg>
+                加载示例
+            </button>
+            <button id="clear-btn" class="btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                </svg>
+                清空内容
+            </button>
+        </div>
+        
+        <div class="editor-container">
+            <div class="editor-section">
+                <div class="section-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                    </svg>
+                    Markdown 编辑器
+                </div>
+                <textarea id="editor" class="editor" placeholder="在此输入Markdown内容..."></textarea>
+            </div>
+            
+            <div class="preview-section">
+                <div class="section-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                        <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                    </svg>
+                    实时预览
+                </div>
+                <div id="preview" class="preview"></div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>使用 marked.js 解析 | 支持 Markdown 语法 | 代码高亮由 Prism.js 提供</p>
+        </footer>
+    </div>
+
+    <script>
+        // 初始化marked.js
+        marked.setOptions({
+            breaks: true,
+            highlight: function(code, lang) {
+                if (Prism.languages[lang]) {
+                    return Prism.highlight(code, Prism.languages[lang], lang);
+                } else {
+                    return code;
+                }
+            }
+        });
+        
+        // 获取DOM元素
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const themeToggle = document.getElementById('theme-toggle');
+        const sampleBtn = document.getElementById('sample-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        
+        // 初始内容
+        const initialContent = `# Markdown 示例
+
+## 标题
+# H1
+## H2
+### H3
+
+## 文本样式
+**粗体文本**  
+*斜体文本*  
+~~删除线文本~~  
+
+## 列表
+- 无序列表项 1
+- 无序列表项 2
+  - 子列表项
+
+1. 有序列表项 1
+2. 有序列表项 2
+
+## 链接和图片
+[百度链接](https://www.baidu.com)  
+![图片描述](https://via.placeholder.com/150)
+
+## 引用
+> 这是引用的内容
+> 多行引用
+
+## 代码
+行内代码: \`console.log('Hello World')\`
+
+代码块:
+\`\`\`javascript
+function hello() {
+  console.log('Hello Markdown!');
+  return true;
+}
+\`\`\`
+
+## 表格
+| 标题1 | 标题2 | 标题3 |
+|-------|-------|-------|
+| 内容1 | 内容2 | 内容3 |
+| 内容4 | 内容5 | 内容6 |
+
+## 分割线
+---
+        
+## HTML支持
+<details>
+  <summary>点击展开详情</summary>
+  <p>这里是被隐藏的内容！</p>
+</details>`;
+        
+        // 设置初始内容
+        editor.value = initialContent;
+        preview.innerHTML = marked.parse(initialContent);
+        
+        // 实时渲染
+        editor.addEventListener('input', function() {
+            preview.innerHTML = marked.parse(editor.value);
+        });
+        
+        // 主题切换
+        themeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            themeToggle.innerHTML = document.body.classList.contains('dark-mode') ? 
+                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/></svg>深色模式' : 
+                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>浅色模式';
+        });
+        
+        // 加载示例
+        sampleBtn.addEventListener('click', function() {
+            editor.value = initialContent;
+            preview.innerHTML = marked.parse(initialContent);
+        });
+        
+        // 清空内容
+        clearBtn.addEventListener('click', function() {
+            editor.value = '';
+            preview.innerHTML = '';
+        });
+        
+        // 初始化代码高亮
+        Prism.highlightAll();
+    </script>
 </body>
 </html>
